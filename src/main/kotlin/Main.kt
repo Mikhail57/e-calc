@@ -1,35 +1,78 @@
 import java.io.FileWriter
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.math.RoundingMode
+import java.math.MathContext
 import kotlin.system.measureTimeMillis
 
+/**
+ * Basic optimized implementation of algorithm
+ */
 fun calc(iterations: Long): BigDecimal {
-    var n = BigInteger("0")
-    var f = BigInteger("1")
-    println("Starting...")
+    var n = BigInteger.valueOf(0)
+    var d = BigInteger.valueOf(1)
+    println("Start of calculation...")
     for (i in iterations downTo 1) {
-        f *= BigInteger(i.toString())
-        n += f
+        d *= BigInteger.valueOf(i)
+        n += d
     }
-    println("End calculating n and f...")
-    val bdN = BigDecimal(n).setScale(1_000_000, RoundingMode.UNNECESSARY)
+    println("End calculating n and d...")
+    val bdN = BigDecimal(n, 1_000_000)
     println("End converting n to BigDecimal")
-    val bdF = BigDecimal(f).setScale(1_000_000, RoundingMode.UNNECESSARY)
-    println("End converting f to BigDecimal")
-    val result = bdN / bdF
-    println("End calculating result")
+    val bdD = BigDecimal(d, 1_000_000)
+    println("End converting d to BigDecimal")
+    val result = bdN / bdD
+    println("End calculating the result")
     return result
 }
 
-fun main(args: Array<String>) {
-    val millis = measureTimeMillis {
-        val e = calc(250_000)
-        val writer = FileWriter("e.txt")
-        writer.write(e.toPlainString())
-        writer.close()
+/**
+ * Fast algorithm based on continued fraction
+ */
+fun calc2(iterations: Long): BigDecimal {
+    var n = BigInteger.ONE // Set numerator to 1
+    var d = BigInteger.valueOf(4 * iterations + 2) // Set denominator to the last term
+    var m: Long // current term multiplier
+    var a: BigInteger // temp variable
+    println("Start of calculation...")
+    for (i in iterations downTo 1) {
+        m = 4 * i + 2
+        a = BigInteger.valueOf(m) * d + n
+        n = d
+        d = a
     }
-    println("--------------------------")
-    println("          Yohooo          ")
-    println("It took ${millis / 1000} seconds to complete")
+    println("End calculating n and d")
+    val precision = 1_000_000
+    val mathContext = MathContext(precision)
+    val bdN = BigDecimal(n, 0, mathContext).setScale(precision)
+    println("End converting n to BigDecimal")
+    val bdD = BigDecimal(d, 0, mathContext).setScale(precision)
+    println("End converting d to BigDecimal")
+    // Calculate 1 + 2 / (1 + n / d)
+    val td = bdN / bdD + BigDecimal.ONE
+    val result = 1.toBigDecimal() + 2.toBigDecimal().setScale(precision) / td
+    println("End calculating the result")
+    return result
+}
+
+fun pretyPrinter(name: String, f: (i: Long) -> BigDecimal, iterations: Long) {
+    println("------------------------------")
+    println("Algorithm: $name")
+    println("------------------------------")
+    var output: BigDecimal = BigDecimal.ONE
+    val millis = measureTimeMillis {
+        output = f(iterations)
+    }
+    val escapedName = name.replace("\\W+".toRegex(), "_").toLowerCase()
+    val writer = FileWriter("e_$escapedName.txt")
+    writer.write(output.toPlainString())
+    writer.close()
+    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    println("Time spent: ${millis / 1000} seconds")
+    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+}
+
+fun main(args: Array<String>) {
+    pretyPrinter("Fast", ::calc2, 97_000)
+    pretyPrinter("Basic optimized", ::calc, 250_000)
 }
